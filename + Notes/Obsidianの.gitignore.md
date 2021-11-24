@@ -1,4 +1,3 @@
-# Obsidianの.gitignore
 
 ref:: https://github.com/obsidianmd/obsidian-docs/blob/master/.gitignore
 

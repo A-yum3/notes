@@ -1,4 +1,3 @@
-## Zettelkasten Note
 
 
 ref:: [URL](https://gigazine.net/news/20200604-zettelkasten-note/)

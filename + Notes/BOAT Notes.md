@@ -1,4 +1,3 @@
-# BOAT Notes
 BOATとは「Block of Atomic Thought」の略
 
 - 少ない定義

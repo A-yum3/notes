@@ -1,7 +1,11 @@
-# Sources MOC
 
 情報源の種類をタグ付けMOC
 
-`#source/book`
-`#source/play`
-`#source/article`
+- `#source/book`
+- `#積読` 
+	- 今は読むタイミングじゃないと判断された
+- `#未購入`
+	- そのうち買いたい
+
+[[Book MOC]]
+[[積読 MOC]]

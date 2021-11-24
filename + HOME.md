@@ -1,5 +1,3 @@
-# Home
-
 すべてのNotesにはここからアクセスができる。
 
 
@@ -13,5 +11,5 @@
 	-  [[IT MOC]]
 - 個人管理
 	-  [[PKM MOC]]
-	-  [[Goals MOC]]
+	-  [[Milestone MOC]]
 

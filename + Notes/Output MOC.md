@@ -1,8 +1,7 @@
-# Output MOC
 
 成果物として吐き出されるアウトプットはタグをつけ、MOCに紐付ける。
 
-[[Article MOC]]
+[[記事 MOC]]
 
 ## Outputs
 

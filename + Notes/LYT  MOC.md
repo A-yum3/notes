@@ -1,4 +1,3 @@
-# LYT MOC
 
 ref:: [LYT Kit](https://publish.obsidian.md/lyt-kit/_Start+Here)
 
@@ -15,4 +14,3 @@ LYTを運用する
 - [[ノートを書く]]
 	- [[タグを使い分ける]]
 - [[MOCを作成する]]
-- [[繰り返して、MOCのMOCを作る]]

@@ -1,4 +1,3 @@
-# PKM(personal knowledge management)
 
 アウトプットを管理する上で考慮すべき指針となる価値観原則
 
