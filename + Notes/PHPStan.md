@@ -1,4 +1,4 @@
-#php #laravel 
+#php/laravel/tool  
 
 静的言語のようなエラーチェックを行ってくれる。
 

@@ -1,4 +1,4 @@
-#laravel #テスト 
+#php/laravel/test 
 
 `$this->markInComplete()` を使うとテストをスキップできます。  
 スキップしたい時もあるでしょうが、割れ窓になる可能性があります。  

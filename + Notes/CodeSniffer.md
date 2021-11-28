@@ -1,5 +1,4 @@
-#php #laravel
-
+#php/laravel/tool 
 PHPのコードであまり良くない書き方をした時に怒ってくれるLintツール
 
 repository: https://github.com/squizlabs/PHP_CodeSniffer

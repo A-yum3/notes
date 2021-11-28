@@ -1,4 +1,4 @@
-#laravel #テスト 
+#php/laravel/test
 
 テストでレコードのid決め打ちで書くと死にます。なるべくFactoryの戻り値のidを使って指定するようにしましょう。  
 

@@ -1,4 +1,4 @@
-#php #laravel #エディタ #ツール
+#php/laravel/tool  #tool/editor
 
 https://www.jetbrains.com/ja-jp/phpstorm/
 

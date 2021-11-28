@@ -1,9 +1,5 @@
-#php #laravel 
+ #php/pest
 
 https://pestphp.com/
 
-BDD志向のテスティングフレームワーク。LaravelでPHPUnitに代わって使われるかもしれないと噂されている。
-
-参考リポジトリ
-
-https://github.com/bytefury/crater/tree/master/tests
+PestとはBDDフレームワークのJestに影響を受けたエレガントなテストをかけるテストフレームワークです。
