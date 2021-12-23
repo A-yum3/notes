@@ -1,5 +1,4 @@
-#php/pest #wip
-
+#php/pest #MOC
 
 - [[Pest - Install]]
 - [[Pest - First]]
@@ -7,9 +6,8 @@
 - [[Pest - Assertion]]
 - [[Pest - Expectation]]
 
-### Refference
 [[Pestで参考になりそうなOSS]]
 [[Pestの実践によさそうなリポジトリ]]
 
-### SetUp
-todo...
+[[Pest - Install]]
+[[PestのSnapShot機能]]

@@ -1,6 +1,6 @@
+#concept/pkm
 
-
-ref:: [URL](https://gigazine.net/news/20200604-zettelkasten-note/)
+ref: [URL](https://gigazine.net/news/20200604-zettelkasten-note/)
 
 1. カード1枚に1アイデア（単一責務）
 2. カード1枚で内容を完結させる（疎結合）

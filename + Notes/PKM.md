@@ -1,3 +1,6 @@
+Personal Knowledge Management
+
+https://scrapbox.io/rashitamemo/Personal_knowledge_management
 
 アウトプットを管理する上で考慮すべき指針となる価値観原則
 
