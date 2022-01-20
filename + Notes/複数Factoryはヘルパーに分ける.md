@@ -5,3 +5,6 @@ Userデータも必要だし、Bookデータも必要だし、User_Bookも必要
 
 なのでprivateで別にfactoryするメソッドを用意してしまいましょう。その関数で引数を受け取るようにすればdataProviderで動的にfactoryもできるのでベスト
 
+--- 
+
+- DataSetsディレクトリを作ってDataSetsクラスを作っても良いかもしれない。

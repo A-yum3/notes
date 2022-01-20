@@ -1,11 +1,15 @@
 #php/laravel/test 
 
-- Factoryの定義は必須のものだけ
+[[Factoryの運用方法]]から
+
+- Factoryの定義をする
 	- Factoryはfakerなどを使って、factoryメソッドだけで問題なくfactoryされるようにする
-- stateメソッドを基本的に肥やして使う時はメソッドチェーン
+	- 外部キーは `SampleModel::facotry()`でidを決め打ちしない
+- stateメソッドを基本的に肥やして使う時はメソッドチェーン可能にする
+	- stateで行うのは単一属性を変更する程度に留める
 	- return値はオブジェクトにする
-- 外部キーの状態を変えたかったら外部キー側のstate
 - state以外のデータセットを作成するメソッドはオリジナルFactoryを作成してもいいかも(案)
+	- DataSetsクラスを作る？
 
 メリット
 - 変更が出た時に1箇所で済む

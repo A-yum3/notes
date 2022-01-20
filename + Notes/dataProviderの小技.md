@@ -1,4 +1,5 @@
 #php/laravel/test 
+
 dataProviderはGeneratorであれば作用する。
 
 つまり、引数をClosureにして、yieldで\[関数\]のような形式にすれば、そのまま関数を渡すことができる。

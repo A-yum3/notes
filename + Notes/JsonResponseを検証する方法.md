@@ -1,5 +1,7 @@
 #php/laravel/test 
 
+- assertJsonを使用し、中でAssertableJsonで検証したい部分を指定する
+
 ```php
 $this
     ->get(action(PostIndexController::class))

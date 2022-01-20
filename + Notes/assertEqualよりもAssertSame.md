@@ -1,0 +1,2 @@
+- AssertEqualは型を見ない
+- AssertSameは型の一致まで見るので、なるべく型までAssertする

@@ -4,34 +4,45 @@
 [[プライベートメソッドに対してテストは書かない]]
 [[publicなAPIに書く]]
 [[ドメインのテスト優先]]
-[[命名規則は動作内容を付ける
+[[命名規則は動作内容を付ける]]
 [[AAAパターン]]
 [[モックについて]]
 [[テストメソッドは1つの動作検証につき1つ]]
+[[デトロイト派とロンドン派]]
 
 Factory
 
-[[Factoryの運用方法]]
 [[Factoryはid決め打ちしない]]
 [[複数Factoryはヘルパーに分ける]]
 [[LaravelのFactoryベストプラクティス(仮)]]
 [[Custom Factory]]
+[[Seederの使い道]]
 
 
-パターン
+dataProvider
 
-[[dataProvider活用法]]
+[[dataProviderの小技]]
 [[dataProviderはテストメソッドの上]]
+
+ベストプラクティス
+
+アンチパターン
+[[テストにおけるif文はアンチパターン]]
 
 注意点
 
-[[markInComplete]]
+[[markTestInComplete]]
 [[ORMとQuery BuilderはConnectionが違う？]]
 [[RefreshDatabaseは遅い]]
+[[RefreshDatabase Or DatabaseTransactions]]
+[[時間が関係するテスト]]
+[[assertEqualよりもAssertSame]]
 
 
 小技
-[[PHPUnitのjsonAssert技]]
-[[setUpにどこまで書くか]]
+[[JsonResponseを検証する方法]]
+[[setUpの使用方法]]
 
 
+参考リンク
+[[]]
