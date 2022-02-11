@@ -1,4 +1,4 @@
-#MOC #php/laravel/test 
+#MOC #php/laravel/test  
 
 基本方針
 [[プライベートメソッドに対してテストは書かない]]
@@ -9,6 +9,7 @@
 [[モックについて]]
 [[テストメソッドは1つの動作検証につき1つ]]
 [[デトロイト派とロンドン派]]
+[[全体的な方針はDocで書く]]
 
 Factory
 
@@ -17,7 +18,6 @@ Factory
 [[LaravelのFactoryベストプラクティス(仮)]]
 [[Custom Factory]]
 [[Seederの使い道]]
-
 
 dataProvider
 
@@ -38,11 +38,8 @@ dataProvider
 [[時間が関係するテスト]]
 [[assertEqualよりもAssertSame]]
 
-
 小技
 [[JsonResponseを検証する方法]]
 [[setUpの使用方法]]
 
 
-参考リンク
-[[]]
