@@ -3,18 +3,7 @@ marp: true
 theme: yum
 ---
 
-# Test
+<!-- _class: title -->
+# Laravelのwithで<br>やらかした話
 
-Slide1
-
----
-
-# Test2
-
-Slide 2
-
----
-
-# Test3
-
-Slide 3
+with null問題

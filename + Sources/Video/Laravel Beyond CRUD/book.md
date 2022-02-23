@@ -586,3 +586,847 @@ $invoice
 ```
 
 ビジネスロジックを提供させるのではなく、クリーンでデータ指向のモデルを維持するようにする。
+
+### イベント駆動型モデル
+
+- 複雑さを犠牲にして柔軟なシステムを提供することができる
+
+```php
+class Invoice
+{
+	protected $dispatchesEvents = [
+		'saving' => InvoiceSavingEvent::class,
+		'deleting' => InvoiceDeletingEvent::class,
+	];
+}
+
+```
+
+```php
+class InvoiceSavingEvent
+{
+	public Invoice $invoice;
+	
+	public function __construct(Invoice $invoice)
+	{
+		$this->invoice = $invoice;
+	}
+}
+
+```
+
+```php
+use Illuminate\Events\Dispatcher;
+
+class InvoiceSubscriber
+{
+	private CalculateTotalPrinceAction $calculateTotalPrinceAction;
+	
+	public function __construct(
+		CalculateTotalPriceAction $calculateTotalPrinceAction
+	) { /* ... */}
+	
+	public function saving(InvoiceSavingEvent $event): void
+	{
+		$invoice = $event->invoice;
+		
+		$invoice->total_price =
+			($this->calculateTotalPriceAction)($invoice);
+	}
+	
+	public function subscribe(Dispatcher $dispatcher): void
+	{
+		$dispatcher->listen(
+			InvoiceSavingEvent::class,
+			self::class . '@saving'
+		);
+	}
+}
+
+
+```
+
+```php
+class EventServiceProvider extends ServiceProvider
+{
+	protected $subscribe = [
+		InvoiceSubscriber::class,
+	];
+}
+```
+
+- このアプローチだと独自のカスタムモデルイベントにフックし、Eloquentイベントと同じように処理する柔軟性がある
+- Subscriberクラスによってモデルは小さく維持され、保守しやすくなる
+
+### Empty bags of nothingness
+
+- Martin Fowlerは「オブジェクトが単なるデータの空っぽの袋にならないようにする必要がある」と書いた
+	- アンチパターンとして
+- モデルは「単なるデータの空っぽの袋」に見えるが、そうではない
+	- accessors, castsによってモデルはデータベース内のプレーンなデータと開発者が使いたいデータとの間にリッチなレイヤーを提供する
+- Alan Kayのビジョン
+	- 「プロセス指向」ではなく「オブジェクト指向」と呼んだことを後悔している
+	- プロセスとデータを分割する推進派だと主張する
+- 自分自身が色々な設計に挑戦し、問題を解決するために最適な方法を考えることに意味がある
+
+## States
+
+Stateパターンはモデルに状態固有の振る舞いを追加し、かつモデルをキレイに保つための最良の方法の1つ
+
+モデルクラスがビジネスロジックを処理しないようにすることで管理しやすくすることを目的としている。
+
+### The state pattern
+
+請求書の例
+
+素朴なFat Model Approch
+```php
+class Invoice extends Model
+{
+	// ...
+	
+	public function getStateColour(): string
+	{
+		if ($this->state->equals(InvoiceState::PENDING())) {
+			return 'orange';
+		}
+		
+		if ($this->state->equals(InvoiceState::PAID())) {
+			return 'green';
+		}
+		
+		return 'gray';
+	}
+}
+```
+
+状態値を表現するためにある種のenumクラスを使っている。enumを使ってカプセル化できる
+
+```php
+class InvoiceState extends Enum
+{
+	private const PENDING = 'pending';
+	private const PAID = 'paid';
+	
+	public function getColour(): string
+	{
+		if ($this->value === self::PENDING) {
+			return 'orange;'
+		}
+		
+		if ($this->value === self::PAID){
+			return 'green';
+		}
+		
+		return 'gray';
+	}
+}
+
+```
+Modelは以下のように
+```php
+class Invoice extends Model
+{
+	// ...
+	
+	public function getStateColour(): string
+	{
+		return $this->state->getColour();
+	}
+}
+```
+
+配列を使えばもっと短く書くこともできる
+```php
+class InvoiceState extends Enum
+{
+	public function getColour(): string
+	{
+		return [
+			self::PENDING => 'orange',
+			self::PAID => 'green',
+		][$this->value] ?? 'grey';
+	}
+}
+```
+
+PHP8だとmatchを使える
+
+```php
+class InvoiceState extends Enum
+{
+	public function getColour(): string
+	{
+		return match($this->value) {
+			self::PENDING => 'orange',
+			self::PAID => 'green',
+			default => 'grey',
+		};
+	}
+}
+```
+
+- このアプローチを使うと、モデルかenumクラスのどちらかに特定の状態が何をすべきかを知っていなければならない
+	- 状態がどのように機能するかを知って無ければいけないという責任を追加することになる
+
+抽象クラスInvoiceStateから始める
+```php
+abstract class InvoiceState
+{
+	abstract public function colour(): string;
+}
+
+class PendingInvoiceState extends InvoiceState
+{
+	public function colour(): string
+	{
+		return 'orange';
+	}
+}
+
+class PaidInvoiceState extends InvoiceState
+{
+	public function colour(): string
+	{
+		return 'green';
+	}
+}
+```
+
+かんたんにユニットテストが可能
+
+```php
+class InvoiceStateTest extends TestCase
+{
+	public function the_colour_of_pending_is_orange
+	{
+		$state = new PendingInvoiceState();
+		
+		$this->assertEquals('orange', $state->colour());
+	}
+}
+```
+
+- 複雑なルールを実現するには足りないものがある
+	- モデルを参照できるようにする必要がある
+	- Invoiceモデルをstateクラスにインジェクトする必要がある
+
+```php
+abstract class InvoiceState
+{
+	protected $invoice;
+	
+	public function __construct(Invoice $invoice) { /* ... */}
+	abstract public function mustBePaid(): bool;
+}
+```
+
+```php
+class PendingInvoiceState extends InvoiceState
+{
+	public function mustBePaid(): bool
+	{
+		return $this->invoice->total_price > 0
+			&& $this->invoice->type->equals(InvoiceType::DEBIT());
+	}
+}
+
+class PaidInvoiceState extends InvoiceState
+{
+	public function mustBePaid(): bool
+	{
+		return false;
+	}
+}
+```
+
+かんたんにユニットテストを書くことができ、単純に以下のことができる
+```php
+class Invoice extends Model
+{
+	public function getStateAttribute(): InvoiceState
+	{
+		return new $this->state_class($this);
+	}
+	
+	public function mustbePaid(): bool
+	{
+		return $this->state->mustBePaid();
+	}
+}
+
+```
+
+- `state_class` に具象モデルの状態のクラスを保存する
+- `spatie/laravel-model-states` package
+	- PHP8.1, Laravel 8.7系で解決されてそう
+
+- State Patternは解決策の半分にすぎない
+- 状態の遷移について見てみる必要がある
+
+### Transitions
+
+- ビジネスロジックをモデルから遠ざけ、データベースから実行可能な方法でデータを提供する
+	- 同じ考え方を状態や遷移に適用することができる
+- Stateを使用する際には、データベースに変更を加えたり、メールを送ったりなどのSide Effectを避ける必要がある
+	- Stateはデータの読み取りや提供のために使用されるべき
+- Transitionは何も提供しない
+	- モデルの状態が次から次へと正しく遷移することを確認する
+- この2つの問題を別々のクラスに分割することで、テスト容易性・認知負荷を軽減する
+- Transitionとはモデルを受け取り、その状態を別のものに変更するためのクラスである
+	- 場合によってはログを買いたり、状態遷移に関する通知を送る副作用がある場合もある
+
+```php
+class PendingToPaidTransition
+{
+	public function __invoke(Invoice $invoice): Invoice
+	{
+		if (! $invoice->mustBePaid()) {
+			throw new InvalidTransitionException(self::class, $invoice);
+		}
+		
+		$invoice->status_class = PaidInvoiceState::class;
+		$invoice->save();
+		
+		History::log($invoice, "Pending to Paid");
+	}
+}
+```
+
+- モデル上で許容されるすべての遷移を定義する
+- フードの下にあるTransitionクラスを使用して、状態を直接別の状態に遷移させる
+- 一連のパラメータを元に、どのような状態に遷移するかを自動的に決定する
+
+
+### transitionsがないState
+
+- 遷移がない状態も存在する
+
+```php
+class PendingInvoiceState extends InvoiceState
+{
+	public function mustBePaid(): bool
+	{
+		return $this->invoice->total_price > 0
+			&& $this->invoice->type->equals(InvoiceType::DEBIT());
+	}
+}
+```
+
+InvoiceTypeもまたステートパターンである。
+InvoiceTypeは変更されることはない
+
+```php
+abstract class InvoiceType
+{
+	protected Invoice $invoice;
+	
+	// ...
+	
+	abstract public function mustBePaid(): boo;
+}
+
+class CreditInvoiceType extends InvoiceType
+{
+	public function mustBePaid(): bool
+	{
+		return false;
+	}
+}
+
+class DebitInvoiceType extends InvoiceType
+{
+	public function mustBePaid(): bool
+	{
+		return true;
+	}
+}
+```
+
+`PendingInvoiceState`のリファクタリングができる
+
+```php
+class PendingInvoiceState extends InvoiceState
+{
+	public function mustbePaid(): bool
+	{
+		return $this->invoice->total_price > 0
+			&& $this->invoice->type->mustBePaid();
+	}
+}
+
+```
+
+- コードの中のif/else文を減らすことで、コードは直線的になる
+
+## Enums
+
+### EnumsかStatesか
+
+- enumはstateとは何が違うのか？いつenumsを使用するのか？
+- enumとstateパターンの両方を使って同じ結果を得ることができるので厄介
+- enumとstateの実装の違いは、stateパターンでは可能な値毎に専用のクラスを用意することで、それらの条件を排除している点
+	- state パターンの目的は条件式をすべて取り除き、代わりにポリモーフィズムの力を借りてプログラムの流れを決定する
+	- 選択する1つの方法として、コード中の条件分岐をなくすためにstateパターンを使い、それ以外はすべてenumsを使うと主張できる
+	- じゃあ「それ以外」は何？
+		- stateパターンでモデリングできるような条件
+	- 現実主義的な考え方で行くと、stateパターンは大きなオーバーヘッドがある
+		- つまり、Enumが使える余地がある
+	- 関連する値のコレクションが必要で、アプリケーションの流れが実査いにその値によって決定される部分が少ないのであれば、Enumを使うことができる
+	- より多くの値に関連する機能を列挙している事に気づいたらstateパターンを検討し始める時
+	- CaseByCaseである
+
+### Enums!
+PHPではEnumがない！（8.1でsolve）
+
+`myclabs/php-enum`で代用する
+```php
+class Invoice
+{
+	public function setType(InvoiceType $type): void
+	{
+		$this->type = $type;
+	}
+}
+```
+
+定数をprivateにして、マジックメソッドを使ってその値を解決する
+```php
+use MyClabs\Enum\Enum;
+
+class InvoiceType extends Enum
+{
+	private const CREDIT = 'credit';
+	private const DEBIT = 'debit';
+}
+
+$invoice->setType(InvoiceType::CREDIT());
+```
+
+- `__callStatic()`を使ってcreditを取得している
+- しかし、`__callStatic()`に依存することで自動補完やリファクタリングのような静的解析の利点を失っている
+	- DocBlockで解決できる
+
+```php
+use MyClabs\Enum\Enum;
+
+/**
+ * @method static self CREDIT()
+ * @method static self DEBIT()
+ */
+class InvoiceType extends Enum
+{
+	private const CREDIT = 'credit';
+	private const DEBIT = 'debit';
+}
+
+$invoice->setType(InvoiceType::CREDIT());
+
+```
+
+## Managing domains
+
+### TeamWork
+
+- 新しいディレクトリ構造や複雑な原理の使用で、新しい開発者がすぐに参加するのは難しい?
+- コードが技術的にどのように構成されているかではなく、理解すべき膨大な量のビジネス知識が大変
+	- ビジネスを理解するのに時間がかかる
+- 混乱する余地をできる限り少なくし、プロジェクトを長く健全に保つことが大切
+- アーキテクチャがすべてのプロジェクトの特効薬になるわけではない
+
+
+### ドメインの特定
+
+- ビジネスの問題を理解し、それをコードに変換すること
+	- コードはあくまで手段であり、問題解決にフォーカスする
+- クライアントと対面する時間を確保すること。動作するプログラムを書くために必要な知識を引き出すには時間がかかる
+
+- 「コードを書くプログラマー」ではなく、「現実の問題と技術的な解決策の翻訳者」
+	- 長期的なプロジェクトに携わる上で重要
+
+- 時間の経過とともに変化するDomainグループを恐れる必要はない
+- ドメイン構造を繰り返しリファクタリングし続ける
+	- ドメインは後でいつでもリファクタリングができるので怖がらずに使い始める
+- クライアントと共に変化するものを理解する必要がある
+
+## Testing Domain
+
+### Test Factories
+
+#### FactoryのBad Point
+
+- `$factory`に対してIDEはどのようなオブジェクトなのか全く理解していない
+- `states()`は文字列として定義されるので、ブラックボックスになる
+- factoryのresultにType Hintingがない
+- 大きなドメインがある場合、テストスイートには数個以上必要な場合があり、時間経過とともに管理が難しくなる
+- DTOやRequestに対応していない
+- Factoryクラスの目標は、システムのセットアップにあまり時間をかけずに統合テストを書くのを助けること
+	- 「単体テスト」ではなく「統合テスト」
+- ビジネスロジックをテストする、ということはクラスの孤立した部分をテストするのではなく、データベースにデータが存在することを必要とする、複雑で入り組んだビジネスルールをテストすることを意味する。
+
+### A Basic Factory
+
+```php
+class InvoiceFactory
+{
+	public static function new(): self
+	{
+		return new self();
+	}
+	
+	public function create(array $extra = []): Invoice
+	{
+		return Invoice::create(array_merge(
+			[
+				'number' => 'I-1',
+				'status' => PendingInvoiceState::class,
+				// ...
+			],
+			$extra
+		));
+	}
+}
+
+```
+
+#### Factories in factories
+
+```php
+class InvoiceFactory
+{
+	private ?string $status = null;
+	
+	public function create(array $extra = []): Invoice
+	{
+		$invoice = Invoice::create(array_merge(
+			[
+				'status' => $this->status ?? PendingInvoiceState::class
+			],
+			$extra
+		));
+		
+		if ($invoice->status->isPaid()) {
+			PaymentFactory::new()->forInvoice($invoice)->create();
+		}
+		
+		return $invoice;
+	}
+	
+	public function paid(): self
+	{
+		$clone = clone $this;
+		
+		$clone->status = PaidInvoiceState::class;
+		
+		return $clone;
+	}
+}
+
+```
+
+- InvoiceFactoryに直接設定を渡しすぎるとすぐにごちゃごちゃになってしまう
+- InvoiceFactoryにオプジョンでPaymentFactoryを渡すことで、InvoiceFactoryの外から好きなようにPaymentFactoryを設定できるようにする
+
+```php
+public function paid(PaymentFactory $paymentFactory = null): self
+{
+	$clone = clone $this;
+	
+	$clone->status = PaidInvoiceState::class;
+	$clone->paymentFactory = $paymentFactory ?? PaymentFactory::new();
+	
+	return $clone;
+}
+
+```
+
+`create`メソッド
+
+```php
+if ($this->paymentFactory) {
+	$this->paymentFactory->forInvoice($invoice)->create();
+}
+```
+
+example
+```php
+public function test_case()
+{
+	$invoice = InvoiceFactory::new()
+		->paid(
+			PaymentFactory::new()->type(VisaPaymentType::class)
+		)
+		->create();
+}
+```
+
+```php
+public function test_case()
+{
+	$invoice = InvoiceFactory::new()
+		->expiresAt('2020-01-01')
+		->paid(
+			PaymentFactory::new()->paidAt('2020-05-20')
+		)
+		->create();
+}
+
+```
+
+### Immutable factories
+
+- 既にあるものを使いまわしたいケースもある
+
+```php
+$invoiceFactory = InvoiceFactory::new()
+	->expiresAt(Carbon::make('2020-01-01'));
+
+$invoiceA = $invoiceFactory->paid()->create();
+$invoiceB = $invoiceFactory->create();
+```
+
+baseとなるFactoryを設定し、それをテスト全体で再利用すれば予期せぬ副作用を心配する必要はない
+
+#### 原則
+
+- Factoryの中にFactoryを構成する
+- FactoryをImmutableにする
+
+欠点としてはオーバーヘッドが大きくなる。しかし総コストは落ちるし、抽象クラスで少し負担を減らせる
+
+```php
+abstract class Factory
+{
+	abstract public function create(array $extra = []);
+	
+	public function times(int $times, array $extra = []): Collection
+	{
+		return collect()
+			->times($times)
+			->map(fn() => $this->create($extra));
+	}
+}
+```
+
+DTOにも使えるし、リクエストクラスにも使うことができる
+
+### Testing DTOs
+
+- DTOが強く型付けされた方法でデータを表現するだけであれば何もテストは必要ない
+- 手動でマッピングする場合はテストを書く必要がある
+
+```php
+/** @test */
+public function form_booking_store_request()
+{
+	$unit = UnitFactory::new()->create();
+	
+	$dto = BookingData::fromStoreRequest(new BookingStoreRequest([
+		'name' => 'test',
+		'unit_id' => $unit->id,
+		'date_start' => '2020-12-01',
+		'date_end' => '2020-12-05',
+	]));
+	
+	$this->assertInstanceOf(BookingData::class, $dto);
+}
+```
+
+他は型チェックでカバーできるので、オブジェクトであるかどうかのアサートだけ行う
+
+exceptions Test
+```php
+/** @test */
+public function from_booking_store_request_without_unit_fails()
+{
+	$this->expectException(ModelNotFoundException::class);
+	
+	BookingData::fromStoreRequest(new BookingStoreRequest([
+		'name' => 'test',
+		'date_start' => '2020-12-01',
+		'date_end' => '2020-12-05',
+	]));
+}
+```
+
+### Testing actions
+
+```php
+class CreateInvoiceAction
+{
+	private CreateInvoiceLineAction $createInvoiceLineAction;
+	
+	public function __construct(
+		CreateInvoiceLineAction $createInvoiceLineAction
+	) { /* ... */ }
+	
+	public function execute(
+		InvoiceData $invoiceData
+	): Invoice { /* ... */ }
+}
+```
+
+Actionのテストは
+- やるべきことをやっているかどうか
+- その元となるアクションを正しい方法で使っているか
+の上記2点が重要になる
+つまり、CreateInvoiceLineActionは内部的に行うべきこと、つまり新しいInvoiceLineをそのすべてのプロパティとともに保存するかどうかはテストしない
+
+```php
+/* @test */
+public function invoice_is_saved_in_the_database()
+{
+	$invoiceData = InvoiceDataFactory::new()
+		->addInvoiceLineDataFactory(
+			InvoiceLineDataFactory::new()
+				->withDescription('Line A')
+				->withItemAmount(1)
+				->withItemPrice(10_00)
+		)
+		->addInvoiceLineDataFactory(
+			InvoiceLineDataFactory::new()
+				->withDescription('Line B')
+				->withItemAmount(3)
+				->withItemPrice(33_00)
+		)
+		->create();
+	
+	$action = app(CreateInvoiceAction::class); // コンテナから解決
+	
+	$invoice = $action->execute($invoiceData);
+	
+	$this->assertDatabaseHas($invoice->getTable(), [
+		'id' => $invoice->id,
+	]);
+	
+	$this->assertNotNull($invoice->number);
+	
+	$expectedTotalPrice = 1 * 10_00 + 3 * 33_00;
+	
+	$this->assertEquals(
+		$expectedTotalPrice,
+		$invoice->total_price
+	);
+	
+	$this->assertCount(2, $invoice->invoiceLines);
+}
+```
+
+- アサーションを別々のテストメソッドに分割してもOK
+- セットアップ部分をテストクラスのsetUpに移動してもOK
+
+PDFを生成するようなテストを遅くするものは別Actionに分離され、テストの際はそのアクションをMockすることによってテストを実現する
+
+```php
+namespace Tests\Mocks\Actions;
+
+use Domain\Pdf\Actions\GeneratePdfAction;
+
+class MockGeneratePdfAction extends GeneratePdfAction
+{
+	public static function setUp(): void
+	{
+		app()->singleton(
+			GeneratePdfAction::class,
+			fn () => new self()
+		);
+	}
+	
+	public function execute(ToPdf $toPdf): void
+	{
+		return;
+	}
+}
+```
+
+### Testing models
+
+```php
+public function where_active()
+{
+	$factory = UnitFactory::new();
+	
+	$activeUnit = $factory->active()->create();
+	
+	$inactiveUnit = $factory->inactive()->create();
+	
+	$this->assertEquals(
+		1,
+		Unit::query()
+			->whereActive()
+			->whereKey($activeUnit->id)
+			->count()
+	);
+	
+	$this->assertEquals(
+		0,
+		Unit::query()
+			->whereActive()
+			->whereKey($inactiveUnit->id)
+			->count()
+	);
+}
+```
+
+#### Susscriberのテスト
+
+```php
+public function test_saving()
+{
+	$subscriber = app(InvoiceSubscriber::class);
+	
+	$event = new InvoiceSavingEvent(InvoiceFactory::new()->create());
+	
+	$subscriber->saving($event);
+	
+	$invoice = $event->invoice;
+	
+	$this->assertNotNull($invoice->total_price);
+}
+```
+
+## Entering the application layer
+
+- コードベースにおける目的ではなく、実世界で何に似ているかを基準にコードをグループ化すること
+- アプリケーション層には何が属するのか？
+- どのようにコードをグループ化するのか？
+
+### Several applications
+
+- HTTP関連アプリ開発がメインになる
+	- Controllers
+	- Requests
+	- Request-specific validation rules
+	- Middleware
+	- Resources
+	- ViewModels
+	- HTTP QueryBuilders (the ones that parse URL queris)
+- アプリケーションの目的は、何らかの入力を得て、それをドメイン層で使えるように変換し、出力をユーザーに示すか、どこかに保存すること
+
+### Structuring HTTP applications
+
+LaravelはデフォルトでクラシックHTTPアプリケーションで行うことを推奨している
+
+App/Admin
+- Http
+	- Controllers
+	- Kernel.php
+	- Middleware
+- Requests
+- Resources
+- Rules
+- ViewModels
+
+この構造は小規模なプロジェクトでは問題ないが、スケールすることができない。
+問題の核心として、コントローラにはコントローラ、リクエストにはリクエスト、ビューモデルにはビューモデルというように実際の意味ではなく、技術的なプロパティに基づいてコードをグループ化している
+
+- 解決策は、ドメインの場合と同じで「一緒になるべきコードをまとめる」こと。
+	- 「アプリケーション・モジュール」、略して「モジュール」と呼ぶ
+	- モジュールはドメイン上に一対一でマッピングされるべき？
+		- 重複していてもかまわないが、必須ではない
+	- Settingsモジュールがあり、複数のドメイングループに一度触れている。
+		- そのSettingsモジュール自体で一つの機能であり、そのコードはグループされるべきである
+
+Supportはグローバルにアクセス可能なすべてのコードを保持し、フレームワークまたはスタンドアロンパッケージの一部であるようにする。リクエストのベースとなるクラスや、あらゆる場所で使われるミドルウェアなどが入る。
+
+## View Models
