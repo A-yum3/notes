@@ -164,6 +164,8 @@ function store(CustomerRequest $request, Customer $customer)
 
 ### DTO factories
 
+https://martinjoo.dev/domain-driven-design-with-laravel-data-transfer-objects?ref=BestOfLaravel.com
+
 アプリケーション層に置く
 
 ```php
@@ -1430,3 +1432,349 @@ App/Admin
 Supportはグローバルにアクセス可能なすべてのコードを保持し、フレームワークまたはスタンドアロンパッケージの一部であるようにする。リクエストのベースとなるクラスや、あらゆる場所で使われるミドルウェアなどが入る。
 
 ## View Models
+
+Viewファイルのモデル
+
+ViewModelはデータを受け取り、それをビューで使えるものに変換するシンプルなクラス
+- ModelをViewのDataProviderとして使用することは、拡張性のあるソリューションではない
+	- 常にコードの重複が発生し、保守や推論が難しくなる
+
+そこで活躍するものがViewModel
+ViewModelはロジックをすべてカプセル化し、様々な場所で再利用できるようにする
+
+```php
+class PostFormViewModel
+{
+	// ...
+	
+	public function __construct(User $user, Post $post = null)
+	{
+		$this->user = $user;
+		$this->post = $post;
+	}
+	
+	public function post(): Post
+	{
+		return $this->post ?? new Post();
+	}
+	
+	public function categories(): Collection
+	{
+		return Category::allowedForUser($this->user)->get();
+	}
+	
+}
+```
+
+- 全ての依存関係はインジェクションされ、外部コンテキストに柔軟性を与える
+- ビューモデルは、ビューが使用できるいくつかのメソッドを公開している
+- postメソッドによって提供される新規投稿や既存投稿のいずれかは作成するか編集するのかによって異なる
+
+Controller例
+
+```php
+class PostController
+{
+	public function create()
+	{
+		$viewModel = new PostFormViewModel(
+			current_user()
+		);
+		
+		return view('blog.form', compact('viewModel'));
+	}
+	
+	public function edit(Post $post)
+	{
+		$viewModel = new PostFormViewModel(
+			current_user(),
+			$post
+		);
+		
+		return view('blog.form', compact('viewModel'));
+	}
+}
+
+```
+
+### View models in Laravel
+
+ViewModelがArrayableを実装している場合、ビュー関数に直接渡すことができる
+
+```php
+public function create()
+{
+	$viewModel = new PostFormViewModel(
+		current_user()
+	);
+	
+	return view('blog.form', $viewModel);
+}
+```
+
+Responsableを実装することで、ビューモデル自体をJSONデータとして返すことも可能
+
+```php
+public function update(Request $request, Post $post)
+{
+	// Update the post...
+	
+	return new PostFormViewModel(
+		current_user(),
+		$post
+	);
+}
+```
+
+ViewModelとLaravelのリソースは似ている？
+- リソースはモデルに1対1で対応するのに対し、ビューモデルは好きなデータを提供することができる
+
+
+resourceと組み合わせる例もある
+
+```php
+class PostViewModel
+{
+	// ...
+	
+	public function values(): array
+	{
+		return PostResource::make(
+			$this->post ?? new Post()
+		)->resolve();
+	}
+}
+```
+
+### View composers
+
+- View composerを使うパターンでは小規模ならまだ把握できるが、大規模になると把握が難しくなる
+
+
+- ViewModelにデータを明示的に渡すことができる
+- 大規模なアプリケーションでグローバルステートを管理するのは面倒
+
+
+## HTTP queries
+
+- クエリパラメータと実際のSQLクエリとの間のマッピングを処理するクラス
+
+小規模なプロジェクトではうまくいくが、大規模なプロジェクトだと複雑なモデルのクエリを扱う必要があるため、これらのクエリを複数のコントローラで共有する必要が出てくる
+```php
+class InvoiceController
+{
+	public function index()
+	{
+		$invoices = QueryBuilder::for(Invoice::class)
+			->allowedFilters(
+				'number',
+				'client'
+			)
+			->allowedSorts(
+				'number',
+			)
+			->get();
+		
+		// ...
+	}
+}
+```
+
+独自のクラスに抽出する
+
+```php
+namespace App\Admin\Invoices\Queries;
+
+use Spatie\QueryBuilder\QueryBuilder;
+
+class InvoiceIndexQuery extends QueryBuilder
+{
+	public function __construct(Request $request)
+	{
+		$query = Invoice::query()
+			->with([
+				'invoicee.contact',
+				'invoiceLines.article',
+			]);
+		
+		parent::__construct($query, $request);
+		
+		$this
+			->allowedFilters(
+				'number',
+				'client',
+			)
+			->allowedSorts(
+				'number',
+			);
+	}
+}
+```
+
+親コンストラクタにわたす前にベースクエリで好きなことができる
+
+```php
+ 
+
+// ...
+
+use Spatie\QueryBuilder\AllowedFilter; use Support\QueryBuilder\FuzzyFilter; 
+
+class InvoiceIndexQuery extends QueryBuilder { 
+
+ 	public function __construct(Request $request)
+    { 
+ 		$query = Invoice::query()
+            ->join('invoicees', 'invoicees.invoice_id', '=', 'invoices.id')
+            ->join('contacts', 'invoicees.contact_id', '=', 'contacts.id'; 
+
+ 		parent::__construct($query, $request); 
+
+		$this
+ 			->allowedFilters(
+			 // ... 
+		 	AllowedFilter::custom(
+			 'search', 
+			 new FuzzyFilter(
+				'contacts.number', 
+			)	
+		);
+	}
+}
+```
+
+最も重要なのは、この方法を使うことでベースクエリに対して適切な静的解析を行うことができる。
+
+また、クエリクラスを分離することで、コントローラをすっきりさせることができる
+リクエストのインジェクションに依存しているので、クエリビルダをインジェクションして、クラスを直接コントローラーメソッドで使用することができる。
+
+```php
+class InvoicesController
+{
+	public function index(InvoiceIndexQuery $invoiceQuery)
+	{
+		$invoices = $invoiceQuery->get();
+		
+		// ...
+	}
+}
+```
+
+```php
+class PaidInvoicesController
+{
+	public function index(InvoiceIndexQuery $invoiceQuery)
+	{
+		$invoices = $invoiceQuery
+			->whereStatus(InvoiceStatus::PAID())
+			->get();
+		// ...
+	}
+}
+```
+
+- filter, sort, eager load などを何度も指定する必要がなく、コントローラ内で特定のケースに応じたクエリビルダの具体的な変更ができる
+
+## Jobs
+
+- アプリケーションレイヤーの一部
+	- ジョブの責任はパイプラインのワークフローを管理すること
+	- コントローラーと似ている
+
+- リクエストからのコントローラや、開発者が指定したジョブを入力として受け取る
+- 入力されたものを処理するために、HTTPリクエスト中のコントローラや、非同期キュー上のジョブなどがディスパッチされる
+- 実際の処理の前後に機能を追加するミドルウェアをサポート
+- HTTPレスポンスによるコントローラ、データベースへの書き込みによるジョブ、メールの送信など、さまざまな出力が最終的な成果
+
+コントローラと同じように機能を追加しすぎないようにする
+- コードを小さなクラスへと移行させ、それぞれが責任を持ち、理解しやすく、テストしやすいものにする
+
+- ジョブにはキューを管理する責任をもたせ、実際のビジネスロジックはコントローラと同じようにドメインアクションで処理するようにする。
+- ジョブは、ビジネス機能を外部に公開するためのもう一つの方法
+
+### Simple Action jobs
+
+```php
+class SendInvoiceMailJob implements ShouldQueue
+{
+	use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+	
+	private Invoice $invoice;
+	
+	public function __construct(Invoice $invoice)
+	{
+		$this->invoice = $invoice;
+	}
+	
+	public function handle(
+		SendInvoiceMailAction $sendInvoiceMailAction
+	): void {
+		$sendInvoiceMailAction->execute($this->invoice);
+	}
+}
+```
+
+- 請求書メールの送信はビジネス上重要な機能の可能性が高い
+	- いくつかのユースケースが考えられる
+	- 「メールを送る」ことはドメインコード
+
+spatie/laravel-queueable-action 参照
+
+### 参考資料
+
+最近、私が強い型システムを好むことに、誰もが共感しているわけではありません。Gary Bernhardtがこの2つのグループの違いについて素晴らしい講演をしています。
+
+https://www.destroyallsoftware.com/talks/ideology
+
+もともと私はDTOを「Value Objects」と呼んでいて、ちょっと意味が違うんです。Matthiasはとても親切にGitHubのスレッドに飛び込んできて、その違いについて議論してくれました。
+
+https://github.com/spatie/data-transfer-object/issues/17
+
+OOPという言葉を発明したアラン・ケイが、「オブジェクト指向」の原型を解説します。この講演は、私がOO言語でのプログラミングをどう考えるかに大きな影響を与えた。
+
+https://www.youtube.com/watch?v=oKg1hTOQXoY
+
+長年にわたり、私たちは本書で説明されている原則をSpatieのプロジェクトに適用しました。Freekは、古いプロジェクトをドメイン指向の設計にリファクタリングする方法を探っています。
+
+
+https://freek.dev/1371-refactoring-to-actions
+
+Martin Fowlerが提唱するトランザクションスクリプトは、アクションの基本である。
+
+https://martinfowler.com/eaaCatalog/transactionScript.html
+
+Martin Fowlerも貧弱なモデルについて、それがアンチパターンであると書いています。私の考えは、Alan Kayの考えに近いです。プロセスとデータを別々に表現し、それらが協調して動作するようにすることです。
+
+https://martinfowler.com/bliki/AnemicDomainModel.html
+
+ティム・マクドナルド氏は、カスタムエロイケントコレクションを使用することにインスピレーションを与え、このパターンは現在でも私たちが楽しんでいるものです。
+
+https://timacdonald.me/giving-collections-a-voice/
+
+また、Timは専用のクエリビルダについてより詳しく書いています。
+
+https://timacdonald.me/dedicated-eloquent-model-query-builders/
+
+ステートパターンについてまだよく分からないという方は、Christopher Okhraviがこのビデオで徹底的に説明しています。
+
+https://www.youtube.com/watch?v=N12L5D78MAA
+
+symfonyのワークフローパッケージは、私が書いた簡略化されたステートパッケージの優れた代替品です。
+
+https://symfony.com/doc/current/workflow/workflow-and-state-machine.html
+
+オブジェクト指向プログラミングに関して、またもや目から鱗が落ちる思いです。サンディ・メッツは、すべてのif文を取り除く方法と、それがオブジェクト指向とどのような関係があるのかを示しています。
+
+https://www.youtube.com/watch?v=29MAL8pJImQ
+
+フリークによるもう一つのドメイン指向Laravelの実践的な入門書です。
+
+https://freek.dev/1486-getting-started-with-domain-oriented-laravel
+
+スパティもタイトンも、同じ時期にテスト工場の改善という同じようなアプローチを思いついたのです。彼らのアプローチも読んでみると面白いですよ。
+
+https://tighten.co/blog/tidy-up-your-tests-with-class-based-model-factories
+
+過去数年間、私たちのオフィスでは、ドメイン指向のLaravelのワークフローを改善するために、数多くのパッケージが書かれてきました。
+
+https://spatie.be/open-source

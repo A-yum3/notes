@@ -67,7 +67,3 @@ $posts = Post::whereIn('user_id', User::query()
 - withでのwhereはwith先だけしかwhereしかしないので、nullが返る
 - whereInを使ってサブクエリを発行する方がwhereHasより高速になる
 - テストケースを漏れなく作り、考慮漏れがないか検証を疎かにしない
-
-#### 謝辞
-
-迷惑をかけてしまった関係者の方、本当に申し訳ないです。
