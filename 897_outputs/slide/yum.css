@@ -1,0 +1,39 @@
+/* @theme yum */
+
+@import 'default';
+
+section {
+  font-family: "07にくまるフォント", "NotoSans";
+  color: #5e17eb;
+  border-right: 60px solid #FFDE59;
+  border-left: 60px solid #FFDE59;
+  border-top: 44px solid #FFDE59;
+  border-bottom: 44px solid #FFDE59;
+}
+
+section.title {
+  color: #5e17eb;
+  font-family: "07にくまるフォント", "NotoSans";
+  font-size: 36px;
+  text-align: center;
+  padding: 40px;
+}
+
+section.title h1 {
+  color: #5e17eb;
+  font-family: "07にくまるフォント", "NotoSans";
+  font-size: 64px;
+}
+
+section.content ul {
+  color: #5e17eb;
+  font-family: "07にくまるフォント", "NotoSans";
+  font-size: 32px;
+  /* border: 5px solid red; */
+}
+
+section.content h1 {
+  color: #5e17eb;
+  font-family: "07にくまるフォント", "NotoSans";
+  font-size: 48px;
+}
