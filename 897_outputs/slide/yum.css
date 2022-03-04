@@ -4,6 +4,7 @@
 
 section {
   font-family: "07にくまるフォント", "NotoSans";
+  background-color: #fafafa;
   color: #5e17eb;
   border-right: 60px solid #FFDE59;
   border-left: 60px solid #FFDE59;
@@ -26,7 +27,7 @@ section.title h1 {
 }
 
 section.content ul {
-  color: #5e17eb;
+  color: #333;
   font-family: "07にくまるフォント", "NotoSans";
   font-size: 32px;
   /* border: 5px solid red; */
