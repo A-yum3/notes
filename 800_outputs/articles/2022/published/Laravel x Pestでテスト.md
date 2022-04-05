@@ -413,13 +413,3 @@ expect()->extend('toBeInTheRange', function(int $min, int $max) {
 ## 次に読むと良いもの
 
 ### [Unit Testing Principles, Practices, and Patterns](https://amzn.to/3yp3Fx7)
-
-## 宣伝
-
-### 今後の予定
-
-今後はLaravelにおけるテストガイドラインをある程度まとめて出そうと考えています。(PHPUnitですが・・・)
-
-Twitterでテスト方法模索ツイートしてるときもあるので、興味があればフォローしてください（フォローは怪しくない限り返します）
-
-https://twitter.com/yum3_tech
