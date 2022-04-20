@@ -9,6 +9,7 @@
 
 ---
 
+#### 初めてのGraphQL
 [[GraphQLとは？]]
 [[グラフ理論]]
 [[GraphQLの問い合わせ言語]]
@@ -18,4 +19,21 @@
 
 ---
 
-[[GraphQLベストプラクティス]]
+[[GraphQLベストプラクティスリンク]]
+
+---
+
+#### GraphQL in Action
+
+[[GraphQLの概要]]
+[[GraphQLスキーマの設計]]
+
+---
+
+[[GraphQLによるベストプラクティス]]
+
+---
+
+[[GraphQL Schema Guide Book]]
+
+---

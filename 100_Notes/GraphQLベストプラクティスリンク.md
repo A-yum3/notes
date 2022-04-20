@@ -1,0 +1,10 @@
+- https://docs.github.com/ja/graphql
+- https://www.youtube.com/watch?v=_U6Ft8op9Ik
+- https://engineering.mercari.com/blog/entry/20220303-concerns-with-using-graphql/
+- https://zenn.dev/saboyutaka/articles/07f1351a6b0049
+- https://relay.dev/docs/guides/graphql-server-specification/
+- https://zenn.dev/icchy/articles/2d64a9ff6aa800
+- https://docs.github.com/ja/graphql/guides/introduction-to-graphql
+- https://graphql.org/learn/best-practices/
+- https://docs.github.com/ja/graphql/guides/introduction-to-graphql
+- https://speakerdeck.com/nagano/phptographql
