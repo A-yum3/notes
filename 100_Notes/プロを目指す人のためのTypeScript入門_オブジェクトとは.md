@@ -183,3 +183,160 @@ type Family<Parent = Animal, Child = Animal> = {
 ```
 
 ## 配列
+
+- 配列はオブジェクトの一種
+
+### 配列型の記法
+
+```ts
+const arr1: boolean[] = [false, true];  
+  
+const arr2: Array<{  
+    name: string  
+}> = [  
+    {name: "山田さん"},  
+    {name: "田中さん"},  
+    {name: "鈴木さん"}  
+]
+```
+
+
+### readonly配列型
+
+```ts
+const arr: readonly number[] = [1, 10, 100];
+```
+
+### 配列の機能
+
+- pushメソッド
+	- 末尾に追加
+- lengthプロパティ
+- MDN参照
+	- JavaScriptの知識をTypeScriptに生かす
+
+### for-of文によるループ
+
+```ts
+const arr = [1, 10, 100];  
+  
+for (const elm of arr) {  
+    console.log(elm);  
+}
+```
+
+### イテレータ
+
+- `[Symbol.iterator]`メソッドを用いてイテレータ取得可能
+
+### タプル型
+
+```ts
+let tuple: [string, number] = ["foo", 0];  
+tuple = ["aiueo", -555];
+```
+
+### 配列の要素アクセス時の危険性
+
+- 存在しないプロパティにアクセスするとTypeScriptはundefinedを返す
+- インデックスアクセスは極力使用しない
+
+## 分割代入
+
+### オブジェクトの分割代入-基本パターン
+
+```ts
+const { foo, bar } = obj;
+```
+
+- 分割代入で宣言された変数には型注釈がつけられない
+
+### オブジェクトの分割代入-ネストしたパターン
+
+```ts
+const nested = {  
+    num: 123,  
+    obj: {  
+        foo: "hello",  
+        bar: "world"  
+    }  
+}
+```
+
+- 実用されるのはせいぜい２、３段階程度
+
+### 配列の分割代入
+
+```ts
+const arr = [ 1, 2, 4, 8, 16];  
+  
+  
+const [, foo, bar, , baz] = arr;
+```
+
+### 分割代入のデフォルト値
+
+```ts
+type Obj = { foo?: number };  
+const obj1: Obj = {};  
+const obj2: Obj = {foo: -1234};  
+  
+// fooに500が代入  
+const {foo = 500} = obj1;  
+  
+/// barに-1234が入る  
+const {foo: bar = 500} = obj2;
+```
+
+- **デフォルト値はundefinedのみに対して適用される**
+
+### restパターンでオブジェクトの残りを取得する
+
+```ts
+const { foo, ...restObj } = obj;
+```
+
+```ts
+const obj = {  
+    foo: 123,  
+    bar: "string",  
+    baz: false,  
+};  
+  
+const {foo, ...restObj} = obj;  
+  
+console.log(foo);  
+console.log(restObj);
+```
+
+## その他の組み込みオブジェクト
+
+### Dateオブジェクト
+
+- 日時を表す組み込み
+- 使いにくいオブジェクト
+	- ミュータブルである
+	- タイムゾーン周りの扱いが難しい
+- Temporalという新しい組み込みオブジェクトが進んでいる
+
+### 正規表現オブジェクト
+
+- replaceとmatch
+- 名前付きキャプチャリンググループ
+	- (?<グループ名>)
+
+### Mapオブジェクト・Setオブジェクト
+
+```ts
+const map: Map<string, number> = new Map();  
+map.set("foo", 1234);  
+  
+console.log(map.get("foo"));  
+console.log(map.get("bar"));
+```
+
+### プリミティブなのにプロパティがある
+
+- 文字列と数値
+	- str.length
+- BigInt
